@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>No signal — WSTV Live</title>
+<link rel="stylesheet" href="/assets/wstv.css">
+<style>
+body{display:grid;place-items:center;min-height:100vh;background:#07090f;overflow:hidden}
+.card404{position:relative;width:min(680px,92vw);border-radius:18px;overflow:hidden;border:1px solid #232f4d;box-shadow:0 30px 90px rgba(0,0,0,.6)}
+.screen{position:relative;aspect-ratio:16/9;background:
+  repeating-linear-gradient(-45deg,#0b0e16 0 34px,#12172a 34px 68px)}
+.bars{position:absolute;inset:0;display:flex;opacity:.9}
+.bars div{flex:1}
+.noise{position:absolute;inset:0;opacity:.14;background:repeating-conic-gradient(#fff 0 .0001%,#000 0 .0002%) 0 0/3px 3px;animation:noisemove .35s steps(3) infinite}
+@keyframes noisemove{0%{transform:translate(0,0)}33%{transform:translate(-2px,1px)}66%{transform:translate(1px,-2px)}100%{transform:translate(0,0)}}
+.osd{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;padding:20px}
+.ch-num{font-family:monospace;font-size:4.2rem;font-weight:900;color:#fff;text-shadow:0 0 22px rgba(255,77,141,.8);letter-spacing:.06em}
+.nosig{font-family:monospace;font-size:.9rem;letter-spacing:.5em;color:#ff4d8d;font-weight:800;border:2px solid #ff4d8d;padding:5px 14px 5px 20px;border-radius:6px;background:rgba(7,9,15,.6)}
+.msg{color:#c3cde0;font-size:.9rem;margin-top:6px}
+.acts{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;justify-content:center}
+.standby{position:absolute;top:12px;right:14px;display:flex;align-items:center;gap:6px;font-family:monospace;font-size:.64rem;letter-spacing:.2em;color:#8d9ab1}
+.led{width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 10px #22c55e;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.foot{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-family:monospace;font-size:.62rem;letter-spacing:.28em;color:#5b6980}
+</style>
+</head>
+<body>
+<div class="card404">
+  <div class="screen">
+    <div class="bars">
+      <div style="background:#c8ccd4"></div><div style="background:#cdd31b"></div>
+      <div style="background:#25c651"></div><div style="background:#22c3d6"></div>
+      <div style="background:#7c5cff"></div><div style="background:#e0407b"></div>
+      <div style="background:#3a4157"></div>
+    </div>
+    <div class="noise"></div>
+    <div class="standby"><span class="led"></span> STANDBY</div>
+    <div class="osd">
+      <div class="ch-num">404</div>
+      <div class="nosig">NO SIGNAL</div>
+      <div class="msg">This frequency doesn't exist. The channel may have moved or was never aired.</div>
+      <div class="acts">
+        <a class="btn btn-brand" href="/">Back to the guide</a>
+        <a class="btn btn-ghost" href="/login">Sign in</a>
+      </div>
+    </div>
+    <div class="foot">WSTV · WEBSOCKETS TELEVISION</div>
+  </div>
+</div>
+</body>
+</html>

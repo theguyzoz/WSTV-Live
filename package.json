@@ -1,0 +1,17 @@
+{
+  "name": "wstv-live",
+  "version": "1.0.0",
+  "description": "WSTV Live — WebSockets Television. a web tv network: channels, schedules, live info over websockets",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  }
+}

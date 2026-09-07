@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sign in — WSTV Live</title>
+<link rel="stylesheet" href="/assets/wstv.css">
+<style>
+body{display:flex;min-height:100vh}
+.brand-side{flex:1;background:radial-gradient(120% 140% at 15% 0%,#241a4d 0%,#12102b 45%,#0a0e17 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem;position:relative;overflow:hidden}
+.brand-side::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0 3px,rgba(255,255,255,.015) 3px 4px)}
+.big{font-size:2.6rem;font-weight:900;letter-spacing:-.03em;color:#fff;position:relative}
+.big em{font-style:normal;color:var(--pink);font-size:.9rem;letter-spacing:.3em;border:2px solid var(--pink);border-radius:9px;padding:3px 12px;vertical-align:middle;margin-left:12px}
+.bsub{color:#a9b4cf;margin-top:14px;max-width:340px;text-align:center;line-height:1.7;position:relative}
+.scanlines{position:absolute;inset:0;background:linear-gradient(180deg,transparent,rgba(124,92,255,.06),transparent);animation:scan 6s linear infinite}
+@keyframes scan{0%{transform:translateY(-100%)}100%{transform:translateY(100%)}}
+.form-side{width:460px;max-width:100%;background:var(--bg2);display:flex;align-items:center;justify-content:center;padding:2rem;border-left:1px solid var(--line)}
+.fbox{width:100%;max-width:340px}
+.tabs{display:flex;background:var(--bg);border-radius:11px;padding:4px;margin-bottom:1.4rem}
+.tab{flex:1;text-align:center;padding:.55rem;border-radius:8px;cursor:pointer;font-size:.85rem;font-weight:800;color:var(--mut)}
+.tab.active{background:var(--panel2);color:#fff}
+.role-pick{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:1rem}
+.role-card{border:1.5px solid var(--line);border-radius:12px;padding:13px 12px;cursor:pointer;text-align:center;transition:.15s;background:var(--bg)}
+.role-card .ic{font-size:1.5rem}
+.role-card b{display:block;font-size:.86rem;margin-top:5px}
+.role-card small{color:var(--mut);font-size:.68rem;line-height:1.4;display:block;margin-top:3px}
+.role-card.active{border-color:var(--brand);background:rgba(124,92,255,.08)}
+@media(max-width:800px){.brand-side{display:none}.form-side{width:100%;border-left:none}}
+</style>
+</head>
+<body>
+<div class="brand-side">
+  <div class="big">WSTV<em>LIVE</em></div>
+  <p class="bsub">WebSockets Television. Watch web shows live, or run your own channel from your bedroom — iCarly energy, real broadcast feel.</p>
+  <div class="scanlines"></div>
+</div>
+<div class="form-side">
+  <div class="fbox">
+    <a class="logo" href="/" style="margin-bottom:1.6rem"><span class="tv">📺</span>WSTV<em>LIVE</em></a>
+
+    <div class="tabs">
+      <div class="tab active" id="tab-in" onclick="switchTab('in')">Sign in</div>
+      <div class="tab" id="tab-up" onclick="switchTab('up')">Create account</div>
+    </div>
+
+    <div class="err-box" id="err"></div>
+
+    <div id="panel-in">
+      <div class="field"><label>Username</label><input id="l-user" autocomplete="username" placeholder="yourname"></div>
+      <div class="field"><label>Password</label><input id="l-pass" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+      <button class="btn btn-brand" id="in-btn" style="width:100%" onclick="doLogin()">Sign in</button>
+    </div>
+
+    <div id="panel-up" style="display:none">
+      <div class="field"><label>Username</label><input id="u-user" autocomplete="username" placeholder="3-20 letters, numbers or _"></div>
+      <div class="field"><label>Password</label><input id="u-pass" type="password" autocomplete="new-password" placeholder="At least 6 characters"></div>
+      <label style="margin-bottom:.4rem">I am here to…</label>
+      <div class="role-pick">
+        <div class="role-card active" id="role-viewer" onclick="pickRole('viewer')">
+          <div class="ic">🍿</div><b>Watch</b><small>Viewer account — follow shows, chat live</small>
+        </div>
+        <div class="role-card" id="role-broadcaster" onclick="pickRole('broadcaster')">
+          <div class="ic">🎙️</div><b>Broadcast</b><small>Run my own television channel</small>
+        </div>
+      </div>
+      <button class="btn btn-pink" id="up-btn" style="width:100%" onclick="doSignup()">Create account</button>
+      <p class="hint" style="margin-top:10px">The very first account created on a fresh install becomes the admin.</p>
+    </div>
+  </div>
+</div>
+
+<script src="/assets/common.js"></script>
+<script src="/assets/auth.js"></script>
+</body>
+</html>

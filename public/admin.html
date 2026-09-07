@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin — WSTV Live</title>
+<link rel="stylesheet" href="/assets/wstv.css">
+<style>
+.admin{max-width:1080px;margin:0 auto;padding:18px}
+.statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px}
+.stat{padding:14px 16px}
+.stat .n{font-size:1.7rem;font-weight:900;letter-spacing:-.02em}
+.stat .k{font-size:.68rem;font-weight:800;color:var(--mut);text-transform:uppercase;letter-spacing:.08em}
+.rolech{display:flex;gap:4px}
+.rolech button{background:var(--bg2);border:1.5px solid var(--line);border-radius:7px;color:var(--mut);font-size:.7rem;font-weight:800;padding:4px 8px}
+.rolech button.on{border-color:var(--brand);color:#fff;background:rgba(124,92,255,.15)}
+.qrow{display:flex;gap:10px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.qrow:last-child{border-bottom:none}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="logo" href="/"><span class="tv">📺</span>WSTV<em>LIVE</em></a>
+  <span class="badge badge-sys">admin</span>
+  <div class="spacer"></div>
+  <a href="/" style="color:var(--mut);font-size:.85rem;font-weight:700">Guide</a>
+  <a class="btn btn-ghost btn-sm" href="/studio">Studio</a>
+</header>
+
+<div class="admin">
+  <div class="err-box" id="err"></div>
+  <div class="ok-box" id="ok"></div>
+
+  <h1 style="font-size:1.4rem;letter-spacing:-.02em;margin-bottom:14px">Control room</h1>
+
+  <div class="statgrid" id="stats"></div>
+
+  <section class="card" style="margin-bottom:18px;overflow:hidden">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--line)"><b>Users</b> <span class="mut" style="font-size:.8rem">— roles &amp; bans</span></div>
+    <div style="overflow-x:auto"><table id="users-t"></table></div>
+  </section>
+
+  <section class="card" style="overflow:hidden">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--line)">
+      <b>Channels</b> <span class="mut" style="font-size:.8rem">— quick controls. full editor (schedule, breaks, image) lives in the Studio</span>
+    </div>
+    <div id="chans"></div>
+  </section>
+</div>
+
+<script src="/assets/common.js"></script>
+<script src="/assets/admin.js"></script>
+</body>
+</html>

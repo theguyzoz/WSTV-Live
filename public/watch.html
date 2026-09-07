@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Watching — WSTV Live</title>
+<link rel="stylesheet" href="/assets/wstv.css">
+<style>
+.watch-layout{display:grid;grid-template-columns:1fr 330px;gap:16px;padding:16px;max-width:1340px;margin:0 auto;align-items:start}
+.screen-wrap{overflow:hidden}
+#screen{position:relative;aspect-ratio:16/9;background:#000}
+#screen iframe,#screen video{position:absolute;inset:0;width:100%;height:100%;border:none;background:#000}
+.statecard{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:24px}
+.statecard img.bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.38;filter:saturate(.85)}
+.statecard .inner{position:relative;z-index:2;max-width:520px}
+.bigmsg{font-size:1.5rem;font-weight:900}
+.submsg{color:#c3cde0;font-size:.92rem;margin-top:8px;line-height:1.6}
+.breakbar{position:absolute;left:0;right:0;top:0;z-index:6;background:linear-gradient(90deg,rgba(245,165,36,.92),rgba(245,165,36,.75));color:#231400;font-weight:900;font-size:.78rem;letter-spacing:.06em;padding:6px 14px;text-transform:uppercase;display:flex;gap:10px;align-items:center}
+.infobar{display:flex;align-items:center;gap:12px;padding:13px 16px;border-top:1px solid var(--line);flex-wrap:wrap}
+.infobar .nm{font-weight:900;font-size:1rem}
+.vwcount{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border-radius:99px;padding:4px 12px;font-size:.76rem;font-weight:800}
+.nextbar{padding:10px 16px;border-top:1px solid var(--line);color:var(--mut);font-size:.82rem}
+.chatcard{display:flex;flex-direction:column;height:calc(100vh - 100px);min-height:460px;position:sticky;top:74px}
+.chathead{padding:12px 14px;border-bottom:1px solid var(--line);font-weight:800;font-size:.9rem;display:flex;align-items:center;gap:8px}
+.chatlog{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.cmsg{font-size:.84rem;line-height:1.45;word-wrap:break-word}
+.cmsg b{color:var(--brand2)}
+.cmsg .t{color:var(--mut2);font-size:.66rem;margin-left:6px}
+.chatform{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--line)}
+.upnext-list{padding:8px 16px 14px;border-top:1px solid var(--line)}
+.uprow{display:flex;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:.84rem;align-items:baseline}
+.uprow:last-child{border-bottom:none}
+.uprow .tm{color:var(--cyan);font-weight:800;white-space:nowrap}
+@media(max-width:960px){
+  .watch-layout{grid-template-columns:1fr;padding:10px}
+  .chatcard{position:static;height:auto;min-height:0}
+  .chatlog{max-height:240px}
+}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="logo" href="/"><span class="tv">📺</span>WSTV<em>LIVE</em></a>
+  <a href="/" style="color:var(--mut);font-size:.85rem;font-weight:700">← Guide</a>
+  <div class="spacer"></div>
+  <a class="btn btn-ghost btn-sm" id="acct" href="/login">Sign in</a>
+</header>
+
+<div class="watch-layout">
+  <section class="card screen-wrap">
+    <div id="screen"></div>
+    <div class="infobar" id="infobar"></div>
+    <div class="nextbar" id="nextbar"></div>
+    <div class="upnext-list" id="upnext"></div>
+  </section>
+
+  <aside class="card chatcard">
+    <div class="chathead">💬 Live chat <span class="badge badge-off" id="chatvw">0 watching</span></div>
+    <div class="chatlog" id="chatlog"><div class="mut" style="text-align:center;padding:20px">Tuning in…</div></div>
+    <div class="chatform" id="chatform"></div>
+  </aside>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/assets/common.js"></script>
+<script src="/assets/watch.js"></script>
+</body>
+</html>

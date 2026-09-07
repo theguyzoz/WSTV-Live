@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Studio — WSTV Live</title>
+<link rel="stylesheet" href="/assets/wstv.css">
+<style>
+.studio{max-width:1080px;margin:0 auto;padding:18px}
+.mych{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-bottom:20px}
+.mych .c{display:flex;gap:10px;align-items:center;padding:12px;border-radius:12px;border:1.5px solid var(--line);cursor:pointer;transition:.15s;background:var(--panel)}
+.mych .c:hover{border-color:var(--brand)}
+.mych .c.active{border-color:var(--brand);background:rgba(124,92,255,.07)}
+.sched-row{display:grid;grid-template-columns:1fr 160px 74px 1fr 34px;gap:8px;margin-bottom:8px;align-items:center}
+.bv-row{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+.switch{position:relative;width:46px;height:26px;flex:none;background:var(--bg2);border:1.5px solid var(--line);border-radius:99px;cursor:pointer;transition:.2s}
+.switch::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--mut);transition:.2s}
+.switch.on{background:rgba(34,197,94,.25);border-color:var(--live)}
+.switch.on::after{left:22px;background:var(--live)}
+@media(max-width:760px){.sched-row{grid-template-columns:1fr 1fr;}}
+.sechead{font-size:.7rem;font-weight:800;color:var(--mut2);text-transform:uppercase;letter-spacing:.1em;margin:18px 0 8px}
+.imgprev{display:flex;gap:12px;align-items:center}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <a class="logo" href="/"><span class="tv">📺</span>WSTV<em>LIVE</em></a>
+  <span class="badge badge-sys">studio</span>
+  <div class="spacer"></div>
+  <a href="/" style="color:var(--mut);font-size:.85rem;font-weight:700">Guide</a>
+  <a class="btn btn-ghost btn-sm" id="acct" href="/admin">Admin</a>
+</header>
+
+<div class="studio">
+  <div class="err-box" id="err"></div>
+  <div class="ok-box" id="ok"></div>
+
+  <div class="row" style="justify-content:space-between;margin-bottom:14px">
+    <div>
+      <h1 style="font-size:1.4rem;letter-spacing:-.02em">Studio</h1>
+      <p class="mut" style="font-size:.84rem" id="hello"></p>
+    </div>
+    <button class="btn btn-pink" onclick="openCreate()">+ New channel</button>
+  </div>
+
+  <div class="sechead" id="mych-head">My channels</div>
+  <div class="mych" id="mych"></div>
+
+  <!-- editor -->
+  <div id="editor" style="display:none">
+    <div class="card" style="padding:18px;margin-bottom:16px">
+      <div class="row" style="justify-content:space-between;margin-bottom:6px">
+        <b id="ed-title" style="font-size:1.05rem"></b>
+        <span id="ed-badges" class="row" style="gap:6px"></span>
+      </div>
+
+      <div class="grid2" style="margin-top:12px">
+        <div class="field"><label>Channel name</label><input id="ed-name" maxlength="40"></div>
+        <div class="field"><label>Tagline</label><input id="ed-tagline" maxlength="90" placeholder="What is this channel about?"></div>
+      </div>
+      <div class="grid2">
+        <div class="field">
+          <label>Next show info</label>
+          <input id="ed-note" maxlength="80" placeholder="e.g. New episode every Friday 7pm">
+          <div class="hint">Leave empty and the channel name shows instead (first few words).</div>
+        </div>
+        <div class="field" id="ed-numwrap">
+          <label>Channel number</label>
+          <input id="ed-number" type="number" min="1" max="999">
+          <div class="hint">Admin only.</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Channel image (shown when offline / in the guide)</label>
+        <div class="imgprev">
+          <div id="ed-img"></div>
+          <div style="flex:1">
+            <input type="file" id="ed-imgfile" accept="image/png,image/jpeg,image/gif,image/webp" style="padding:.45rem">
+            <div class="hint">png / jpg / gif / webp, max 2MB.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sechead">Broadcast</div>
+      <div class="row" style="gap:16px;margin-bottom:10px">
+        <div class="row" style="gap:10px">
+          <div class="switch" id="ed-online" onclick="toggleOnline()"></div>
+          <b style="font-size:.88rem">Channel is live</b>
+        </div>
+      </div>
+      <div class="field">
+        <label>Live stream URL (played when no schedule is running)</label>
+        <input id="ed-liveurl" placeholder="https://… (youtube link, mp4, stream)">
+        <div class="hint">Used only when the channel is live and nothing is scheduled.</div>
+      </div>
+
+      <div class="sechead">Break-time videos <span class="mut2" style="text-transform:none;letter-spacing:0">(played between shows)</span></div>
+      <div id="ed-breaks"></div>
+      <div class="row" style="margin-bottom:6px">
+        <input id="ed-newbreak" placeholder="https://… video url (youtube, mp4)">
+        <button class="btn btn-ghost btn-sm" onclick="addBreak()">Add</button>
+      </div>
+
+      <div class="row" style="margin-top:18px;gap:10px">
+        <button class="btn btn-brand" onclick="saveBasics()">Save channel</button>
+        <button class="btn btn-ghost" onclick="goWatch()">▶ Preview</button>
+        <span class="spacer" style="flex:1"></span>
+        <button class="btn btn-danger" id="ed-del" onclick="deleteChannel()">Delete channel</button>
+      </div>
+    </div>
+
+    <div class="card" style="padding:18px">
+      <div class="row" style="justify-content:space-between;margin-bottom:8px">
+        <div>
+          <b style="font-size:1.05rem">Show schedule</b>
+          <p class="mut" style="font-size:.8rem">What plays and when. Gaps between shows = break time.</p>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="addShowRow()">+ Add show</button>
+      </div>
+      <div id="ed-sched"></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn btn-brand" onclick="saveSchedule()">Save schedule</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="/assets/common.js"></script>
+<script src="/assets/studio.js"></script>
+</body>
+</html>
