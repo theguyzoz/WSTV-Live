@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Sign in — WSTV Live</title>
+<link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
 <link rel="stylesheet" href="/assets/wstv.css">
 <style>
 body{display:flex;min-height:100vh}
@@ -36,7 +37,7 @@ body{display:flex;min-height:100vh}
 </div>
 <div class="form-side">
   <div class="fbox">
-    <a class="logo" href="/" style="margin-bottom:1.6rem"><span class="tv">📺</span>WSTV<em>LIVE</em></a>
+    <a class="logo" href="/" style="margin-bottom:1.6rem"><span class="tv"><svg viewBox="0 0 64 64" width="27" height="27" aria-hidden="true"><defs><linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c5cff"/><stop offset="1" stop-color="#ff4d8d"/></linearGradient></defs><path d="M23 12l9 12 9-12" fill="none" stroke="url(#lg1)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><rect x="8" y="24" width="48" height="30" rx="9" fill="url(#lg1)"/><path d="M28 33l13 6.5L28 46z" fill="#fff"/></svg></span>WSTV<em>LIVE</em></a>
 
     <div class="tabs">
       <div class="tab active" id="tab-in" onclick="switchTab('in')">Sign in</div>
@@ -57,10 +58,10 @@ body{display:flex;min-height:100vh}
       <label style="margin-bottom:.4rem">I am here to…</label>
       <div class="role-pick">
         <div class="role-card active" id="role-viewer" onclick="pickRole('viewer')">
-          <div class="ic">🍿</div><b>Watch</b><small>Viewer account — follow shows, chat live</small>
+          <div class="ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M10 8.5l5.5 3.5L10 15.5z" fill="currentColor" stroke="none"/></svg></div><b>Watch</b><small>Viewer account — follow shows, chat live</small>
         </div>
         <div class="role-card" id="role-broadcaster" onclick="pickRole('broadcaster')">
-          <div class="ic">🎙️</div><b>Broadcast</b><small>Run my own television channel</small>
+          <div class="ic"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor" stroke="none"/><path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6"/></svg></div><b>Broadcast</b><small>Run my own television channel</small>
         </div>
       </div>
       <button class="btn btn-pink" id="up-btn" style="width:100%" onclick="doSignup()">Create account</button>

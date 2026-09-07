@@ -67,7 +67,7 @@ function renderRail() {
     + '<span class="chnum">' + ch.number + '</span>'
     + chTile(ch, 36)
     + '<div class="chmeta"><div class="chname">' + esc(ch.name) + '</div>'
-    + '<div class="chnext">' + (ch.online && ch.now ? '🔴 ' + esc(ch.now.title) : esc(ch.nextShow)) + '</div></div>'
+    + '<div class="chnext">' + (ch.online && ch.now ? '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--live);margin-right:5px"></span>' + esc(ch.now.title) : esc(ch.nextShow)) + '</div></div>'
     + '<span class="vw">' + (ch.viewers ? ch.viewers + ' 👁' : '') + '</span>'
     + '</div>'
   )).join('');
@@ -194,7 +194,7 @@ function renderMoblist() {
     + chTile(ch, 42)
     + '<div style="flex:1;min-width:0">'
     + '<div style="display:flex;gap:7px;align-items:center"><span class="mono mut2" style="font-size:.68rem">' + ch.number + '</span><b style="font-size:.88rem">' + esc(ch.name) + '</b>' + (ch.online ? '<span style="width:7px;height:7px;border-radius:50%;background:var(--live)"></span>' : '') + '</div>'
-    + '<div class="mut" style="font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (ch.now ? '🔴 ' + esc(ch.now.title) : esc(ch.nextShow)) + '</div>'
+    + '<div class="mut" style="font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (ch.now ? '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--live);margin-right:5px"></span>' + esc(ch.now.title) : esc(ch.nextShow)) + '</div>'
     + '</div><span class="mut2" style="font-size:.7rem">' + (ch.viewers || '') + '</span></div>'
   )).join('') + '</div>';
 }

@@ -10,6 +10,15 @@ let currentState = '';
 let currentSrc = '';
 const $ = (id) => document.getElementById(id);
 
+// hand-drawn stroke icons for the on-screen states
+const ICONS = {
+  offline: '<svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v9"/><path d="M6.2 6.6a8 8 0 1 0 11.6 0"/></svg>',
+  pause: '<svg width="54" height="54" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="7" y="5" width="3.6" height="14" rx="1.6"/><rect x="13.4" y="5" width="3.6" height="14" rx="1.6"/></svg>',
+  clock: '<svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>',
+  notfound: '<svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/><path d="M8.7 8.7l4.6 4.6M13.3 8.7l-4.6 4.6"/></svg>',
+};
+
+
 if (!chId) location.href = '/';
 
 async function init() {
@@ -23,7 +32,7 @@ async function init() {
     const d = await api('/api/channels/' + encodeURIComponent(chId));
     CH = d.channel;
   } catch (e) {
-    $('screen').innerHTML = stateCardHtml('📡', 'Channel not found', e.message, false);
+    $('screen').innerHTML = stateCardHtml(ICONS.notfound, 'Channel not found', e.message, false);
     $('infobar').innerHTML = '<span class="mut">' + esc(e.message) + '</span>';
     return;
   }
@@ -88,15 +97,15 @@ function tick(force) {
   } else if (st.state === 'break') {
     const bv = (CH.breakVideos || []);
     const v = bv.length ? playerHtml(bv[breakIdx % bv.length], true) : '';
-    scr.innerHTML = v + stateCardHtml('⏸', 'On break', 'Up next: <b>' + esc(st.next.title) + '</b> at ' + fmtDayTime(st.next.start), !!bv.length, true);
+    scr.innerHTML = v + stateCardHtml(ICONS.pause, 'On break', 'Up next: <b>' + esc(st.next.title) + '</b> at ' + fmtDayTime(st.next.start), !!bv.length, true);
     if (bv.length) breakIdx++;
   } else if (st.state === 'live') {
     scr.innerHTML = playerHtml(src) + '<div class="breakbar" style="background:linear-gradient(90deg,rgba(34,197,94,.92),rgba(34,197,94,.7));color:#032210">● LIVE</div>';
   } else if (st.state === 'offline') {
     // offline: the info card on top of the channel's uploaded image
-    scr.innerHTML = stateCardHtml('📴', 'Channel offline', 'This channel is off air right now.<br>Next up: ' + esc(nextShowText()), false);
+    scr.innerHTML = stateCardHtml(ICONS.offline, 'Channel offline', 'This channel is off air right now.<br>Next up: ' + esc(nextShowText()), false);
   } else {
-    scr.innerHTML = stateCardHtml('📡', 'Tune in soon', 'Nothing scheduled on ' + esc(CH.name) + ' yet. Check the guide later.', false);
+    scr.innerHTML = stateCardHtml(ICONS.clock, 'Tune in soon', 'Nothing scheduled on ' + esc(CH.name) + ' yet. Check the guide later.', false);
   }
   renderNextbar();
 }
@@ -129,7 +138,7 @@ function stateCardHtml(icon, big, subHtml, behindVideo, isBreak) {
     + (behindVideo ? '' : img)
     + '<div class="inner"'
     + (behindVideo ? ' style="background:rgba(8,12,22,.55);border-radius:12px;padding:12px 16px;backdrop-filter:blur(4px)"' : '') + '>'
-    + (behindVideo ? '' : '<div style="font-size:2.6rem">' + icon + '</div>')
+    + (behindVideo ? '' : '<div style="width:54px;height:54px;color:#e7ecf6;display:flex;justify-content:center">' + icon + '</div>')
     + '<div class="bigmsg">' + big + '</div>'
     + '<div class="submsg">' + subHtml + '</div>'
     + (isBreak ? '' : '<div style="margin-top:16px;display:flex;gap:10px;justify-content:center"><a class="btn btn-ghost btn-sm" href="/">← Back to guide</a></div>')
@@ -156,7 +165,7 @@ function renderNextbar() {
   if (st.state === 'show' && st.current) {
     const end = new Date(st.current.start).getTime() + st.current.durationMin * 60_000;
     const left = Math.max(0, end - Date.now());
-    el.innerHTML = '🔴 Now: <b>' + esc(st.current.title) + '</b> · ends in ' + mmss(left) + (st.next ? ' · up next: ' + esc(st.next.title) : '');
+    el.innerHTML = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--live);margin-right:5px"></span>Now: <b>' + esc(st.current.title) + '</b> · ends in ' + mmss(left) + (st.next ? ' · up next: ' + esc(st.next.title) : '');
   } else if (st.state === 'break' && st.next) {
     const left = Math.max(0, new Date(st.next.start).getTime() - Date.now());
     el.innerHTML = '⏸ On break · <b>' + esc(st.next.title) + '</b> starts in ' + mmss(left);

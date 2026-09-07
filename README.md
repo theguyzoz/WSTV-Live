@@ -2,7 +2,10 @@
 
 An iCarly-style web TV network. Anyone can run their own television channel from
 their browser — schedule shows, go live, take breaks — and everyone else watches
-from a proper DStv-style guide. Built with Node, Express and Socket.IO.
+from a proper DStv-style guide. Built with Node, Express and Socket.IO. Branding is a hand-drawn SVG mark
+(`public/assets/icon.svg`) — a gradient TV with an antenna and a play button —
+used as the favicon and inline logo, with stroke-SVG icons throughout the UI
+(no emoji icon junk).
 
 ```
 Viewer (browser)  ◀── websockets: guide, viewers, chat ──▶  WSTV server
