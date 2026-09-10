@@ -1,4 +1,4 @@
-// admin: users + quick channel controls
+// admin: users + quick channel controls (all via data-act)
 'use strict';
 
 let me = null;
@@ -12,7 +12,7 @@ async function init() {
   try { me = (await api('/api/auth/me')).user; } catch { me = null; }
   if (!me) { location.href = '/login'; return; }
   if (me.role !== 'admin') {
-    document.body.innerHTML = '<div style="display:grid;place-items:center;min-height:100vh;text-align:center"><div><div style="font-size:3rem">🚫</div><h2>Admins only</h2><p class="mut">You are signed in as ' + esc(me.username) + ' (' + esc(me.role) + ').</p><a class="btn btn-brand" href="/">Back to guide</a></div></div>';
+    document.body.innerHTML = '<div style="display:grid;place-items:center;min-height:100vh;text-align:center"><div><div style="width:64px;height:64px;margin:0 auto 10px;color:var(--red)"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M5.8 5.8l12.4 12.4"/></svg></div><h2>Admins only</h2><p class="mut">You are signed in as ' + esc(me.username) + ' (' + esc(me.role) + ').</p><a class="btn btn-brand" href="/">Back to guide</a></div></div>';
     return;
   }
   await load();
@@ -40,31 +40,14 @@ function renderUsers() {
       + '<td><b>' + esc(u.username) + '</b>' + (u.id === me.id ? ' <span class="mut2" style="font-size:.7rem">(you)</span>' : '') + '</td>'
       + '<td><div class="rolech">'
       + ['viewer', 'broadcaster', 'admin'].map(r =>
-          '<button class="' + (u.role === r ? 'on' : '') + '" onclick="setRole(\'' + esc(u.id) + '\',\'' + r + '\')">' + r + '</button>'
+          '<button class="' + (u.role === r ? 'on' : '') + '" data-act="role" data-id="' + esc(u.id) + '" data-role="' + r + '">' + r + '</button>'
         ).join('')
       + '</div></td>'
-      + '<td>' + (u.banned ? '🚫' : '—') + '</td>'
-      + '<td>' + (u.id === me.id ? '' : '<button class="btn btn-danger btn-sm" onclick="toggleBan(\'' + esc(u.id) + '\',' + (!u.banned) + ')">' + (u.banned ? 'Unban' : 'Ban') + '</button>') + '</td>'
+      + '<td>' + (u.banned ? 'banned' : '—') + '</td>'
+      + '<td>' + (u.id === me.id ? '' : '<button class="btn btn-danger btn-sm" data-act="ban" data-id="' + esc(u.id) + '" data-banned="' + (!u.banned) + '">' + (u.banned ? 'Unban' : 'Ban') + '</button>') + '</td>'
       + '</tr>'
     )).join('')
     + '</tbody>';
-}
-
-async function setRole(id, role) {
-  try {
-    await api('/api/admin/users/' + encodeURIComponent(id), { method: 'PATCH', body: { role } });
-    showOk('Role updated');
-    load();
-  } catch (e) { showErr(e.message); }
-}
-
-async function toggleBan(id, banned) {
-  if (banned && !confirm('Ban this user? They get kicked out of the chat.')) return;
-  try {
-    await api('/api/admin/users/' + encodeURIComponent(id), { method: 'PATCH', body: { banned } });
-    showOk(banned ? 'User banned' : 'User unbanned');
-    load();
-  } catch (e) { showErr(e.message); }
 }
 
 function renderChans() {
@@ -74,19 +57,12 @@ function renderChans() {
     + chTile(c, 34)
     + '<div style="flex:1;min-width:140px"><b style="font-size:.88rem">' + esc(c.name) + '</b>'
     + '<div class="mut" style="font-size:.72rem">' + (c.kind === 'system' ? 'system channel' : 'user channel') + ' · next: ' + esc(c.nextShow) + '</div></div>'
-    + '<span class="mut mono" style="font-size:.74rem">' + (c.viewers || 0) + ' 👁</span>'
+    + '<span class="mut mono" style="font-size:.74rem">' + EYE + ' ' + (c.viewers || 0) + '</span>'
     + '<input id="note-' + esc(c.id) + '" value="' + esc(c.nextShowNote || '') + '" maxlength="80" placeholder="next show info" style="width:200px;padding:.4rem .6rem">'
-    + '<div class="switch" style="position:relative;width:46px;height:26px;flex:none;background:var(--bg2);border:1.5px solid var(--line);border-radius:99px;cursor:pointer;transition:.2s' + (c.online ? ';background:rgba(34,197,94,.25);border-color:var(--live)' : '') + '" onclick="toggleOnline(\'' + esc(c.id) + '\',' + (!c.online) + ')"><span style="position:absolute;top:3px;left:' + (c.online ? '22px' : '3px') + ';width:18px;height:18px;border-radius:50%;background:' + (c.online ? 'var(--live)' : 'var(--mut)') + ';transition:.2s"></span></div>'
+    + '<button class="btn btn-sm ' + (c.online ? 'btn-live' : 'btn-ghost') + '" data-act="ch-live" data-id="' + esc(c.id) + '" data-online="' + (!c.online) + '">' + (c.online ? '● ON AIR' : 'OFF') + '</button>'
     + '<a class="btn btn-ghost btn-sm" href="/studio?ch=' + esc(c.id) + '">Edit</a>'
     + '</div>'
   )).join('');
-}
-
-async function toggleOnline(id, online) {
-  try {
-    await api('/api/channels/' + encodeURIComponent(id), { method: 'PATCH', body: { online } });
-    load();
-  } catch (e) { showErr(e.message); }
 }
 
 // save next-show note when the input loses focus
@@ -101,6 +77,31 @@ document.addEventListener('focusout', async (e) => {
     showOk('Next-show info saved');
     load();
   } catch (err) { showErr(err.message); }
+});
+
+bindActions({
+  role: async (ds) => {
+    try {
+      await api('/api/admin/users/' + encodeURIComponent(ds.id), { method: 'PATCH', body: { role: ds.role } });
+      showOk('Role updated');
+      load();
+    } catch (e) { showErr(e.message); }
+  },
+  ban: async (ds) => {
+    const banned = ds.banned === 'true';
+    if (banned && !confirm('Ban this user? They get kicked out of the chat.')) return;
+    try {
+      await api('/api/admin/users/' + encodeURIComponent(ds.id), { method: 'PATCH', body: { banned } });
+      showOk(banned ? 'User banned' : 'User unbanned');
+      load();
+    } catch (e) { showErr(e.message); }
+  },
+  'ch-live': async (ds) => {
+    try {
+      await api('/api/channels/' + encodeURIComponent(ds.id), { method: 'PATCH', body: { online: ds.online === 'true' } });
+      load();
+    } catch (e) { showErr(e.message); }
+  },
 });
 
 init();

@@ -8,7 +8,6 @@ const EPG_HOURS = 4;
 const $ = (id) => document.getElementById(id);
 
 function init() {
-  // boot splash out
   setTimeout(() => $('splash').classList.add('gone'), 850);
   setInterval(() => { $('clock').textContent = fmtClock(); }, 1000);
   $('clock').textContent = fmtClock();
@@ -63,19 +62,21 @@ function statusBadge(ch) {
 
 function renderRail() {
   $('rail').innerHTML = GUIDE.map(ch => (
-    '<div class="chrow' + (ch.id === selected ? ' active' : '') + '" onclick="selectCh(\'' + esc(ch.id) + '\')">'
+    '<div class="chrow' + (ch.id === selected ? ' active' : '') + '" data-act="select" data-ch="' + esc(ch.id) + '">'
     + '<span class="chnum">' + ch.number + '</span>'
     + chTile(ch, 36)
     + '<div class="chmeta"><div class="chname">' + esc(ch.name) + '</div>'
-    + '<div class="chnext">' + (ch.online && ch.now ? '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--live);margin-right:5px"></span>' + esc(ch.now.title) : esc(ch.nextShow)) + '</div></div>'
-    + '<span class="vw">' + (ch.viewers ? ch.viewers + ' 👁' : '') + '</span>'
+    + '<div class="chnext">' + (ch.online && ch.now
+        ? '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--live);margin-right:5px"></span>' + esc(ch.now.title)
+        : esc(ch.nextShow)) + '</div></div>'
+    + '<span class="vw">' + (ch.viewers ? EYE + ' ' + ch.viewers : '') + '</span>'
     + '</div>'
   )).join('');
 }
 
 function renderChips() {
   $('chips').innerHTML = GUIDE.map(ch => (
-    '<div class="chip' + (ch.id === selected ? ' active' : '') + '" onclick="selectCh(\'' + esc(ch.id) + '\')">'
+    '<div class="chip' + (ch.id === selected ? ' active' : '') + '" data-act="select" data-ch="' + esc(ch.id) + '">'
     + '<span class="mono" style="color:var(--mut2);font-size:.7rem">' + ch.number + '</span>'
     + esc(ch.name)
     + (ch.online ? ' <span style="width:7px;height:7px;border-radius:50%;background:var(--live);display:inline-block"></span>' : '')
@@ -83,7 +84,7 @@ function renderChips() {
   )).join('');
 }
 
-function selectCh(id) {
+function selectById(id) {
   selected = id;
   history.replaceState(null, '', '#' + id);
   renderRail(); renderChips(); renderIplate();
@@ -96,7 +97,7 @@ function renderIplate() {
 
   let badges = statusBadge(ch);
   if (ch.kind === 'system') badges += ' <span class="badge badge-sys">wstv</span>';
-  if (ch.viewers) badges += ' <span class="badge badge-off">' + ch.viewers + ' watching</span>';
+  if (ch.viewers) badges += ' <span class="badge badge-off">' + EYE + ' ' + ch.viewers + ' watching</span>';
 
   let title, sub, action;
   if (!ch.online) {
@@ -104,15 +105,15 @@ function renderIplate() {
     sub = 'Channel is offline right now. Next up: ' + esc(ch.nextShow);
     action = '';
   } else if (ch.now) {
-    title = '🔴 On now: ' + esc(ch.now.title);
+    title = 'On now: ' + esc(ch.now.title);
     sub = esc(ch.tagline || '');
     action = '<a class="btn btn-pink" href="/watch/' + esc(ch.id) + '">▶ Watch live</a>';
   } else if (ch.next) {
-    title = '⏸ On break';
+    title = 'On break';
     sub = 'Up next: ' + esc(ch.next.title) + ' at ' + fmtClock(ch.next.start);
     action = '<a class="btn btn-pink" href="/watch/' + esc(ch.id) + '">▶ Tune in</a>';
   } else {
-    title = '🔴 ' + esc(ch.name) + ' is live';
+    title = esc(ch.name) + ' is live';
     sub = esc(ch.tagline || 'Tune in and see what\'s on.');
     action = '<a class="btn btn-pink" href="/watch/' + esc(ch.id) + '">▶ Watch live</a>';
   }
@@ -169,10 +170,10 @@ function renderEpg() {
       const left = Math.max(0, (s - winStart) / winSpan * 100);
       const right = Math.min(100, (e - winStart) / winSpan * 100);
       const on = s <= now && now < e;
-      lane += '<div class="epg-block' + (on ? ' on' : '') + '" style="left:' + left.toFixed(2) + '%;width:' + (right - left).toFixed(2) + '%" title="' + esc(it.title) + ' — ' + fmtDayTime(it.start) + '" onclick="selectCh(\'' + esc(ch.id) + '\')">' + esc(it.title) + '</div>';
+      lane += '<div class="epg-block' + (on ? ' on' : '') + '" style="left:' + left.toFixed(2) + '%;width:' + (right - left).toFixed(2) + '%" title="' + esc(it.title) + ' — ' + fmtDayTime(it.start) + '" data-act="select" data-ch="' + esc(ch.id) + '">' + esc(it.title) + '</div>';
     }
     row.innerHTML =
-      '<div class="epg-ch" onclick="selectCh(\'' + esc(ch.id) + '\')">'
+      '<div class="epg-ch" data-act="select" data-ch="' + esc(ch.id) + '">'
       + '<span class="chnum" style="width:auto">' + ch.number + '</span>'
       + chTile(ch, 26)
       + '<span class="n">' + esc(ch.name) + '</span></div>'
@@ -190,12 +191,14 @@ function renderMoblist() {
   const wrap = $('mobwrap');
   if (!wrap) return;
   wrap.innerHTML = '<div class="moblist">' + GUIDE.map(ch => (
-    '<div class="mobrow" onclick="location.href=\'/watch/' + esc(ch.id) + '\'">'
+    '<div class="mobrow" data-act="go" data-href="/watch/' + esc(ch.id) + '">'
     + chTile(ch, 42)
     + '<div style="flex:1;min-width:0">'
     + '<div style="display:flex;gap:7px;align-items:center"><span class="mono mut2" style="font-size:.68rem">' + ch.number + '</span><b style="font-size:.88rem">' + esc(ch.name) + '</b>' + (ch.online ? '<span style="width:7px;height:7px;border-radius:50%;background:var(--live)"></span>' : '') + '</div>'
-    + '<div class="mut" style="font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (ch.now ? '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--live);margin-right:5px"></span>' + esc(ch.now.title) : esc(ch.nextShow)) + '</div>'
-    + '</div><span class="mut2" style="font-size:.7rem">' + (ch.viewers || '') + '</span></div>'
+    + '<div class="mut" style="font-size:.74rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (ch.now
+        ? '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--live);margin-right:5px"></span>' + esc(ch.now.title)
+        : esc(ch.nextShow)) + '</div>'
+    + '</div><span class="mut2" style="font-size:.7rem">' + (ch.viewers ? EYE + ' ' + ch.viewers : '') + '</span></div>'
   )).join('') + '</div>';
 }
 
@@ -210,6 +213,10 @@ async function hydrateEpgSchedules() {
     } catch {}
   }
 }
+
+bindActions({
+  select: (ds) => selectById(ds.ch),
+});
 
 init();
 hydrateEpgSchedules();

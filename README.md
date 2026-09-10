@@ -13,6 +13,14 @@ Viewer (browser)  ◀── websockets: guide, viewers, chat ──▶  WSTV ser
       └── plays videos straight from their urls (youtube / mp4 / streams)
 ```
 
+## Fonts & interaction model
+
+UI font is **Space Grotesk** (OFL licensed, bundled as woff2 in
+`public/assets/`). The strict CSP blocks inline `onclick` handlers, so every
+button/input in the app — static and dynamically generated — goes through
+`data-act` / `data-enter` / `data-oninput` attributes dispatched by one
+listener (`bindActions()` in `common.js`).
+
 The server never streams video. It serves **info** — channels, schedules,
 what's on now, viewer counts, chat — and locks everything down. Video playback
 happens client-side from the URLs in the schedule.

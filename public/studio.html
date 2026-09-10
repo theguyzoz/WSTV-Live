@@ -30,6 +30,7 @@
   <div class="spacer"></div>
   <a href="/" style="color:var(--mut);font-size:.85rem;font-weight:700">Guide</a>
   <a class="btn btn-ghost btn-sm" id="acct" href="/admin">Admin</a>
+  <button class="btn btn-ghost btn-sm" data-act="logout">Sign out</button>
 </header>
 
 <div class="studio">
@@ -41,7 +42,7 @@
       <h1 style="font-size:1.4rem;letter-spacing:-.02em">Studio</h1>
       <p class="mut" style="font-size:.84rem" id="hello"></p>
     </div>
-    <button class="btn btn-pink" onclick="openCreate()">+ New channel</button>
+    <button class="btn btn-pink" id="btn-create" data-act="create">+ New channel</button>
   </div>
 
   <div class="sechead" id="mych-head">My channels</div>
@@ -86,7 +87,7 @@
       <div class="sechead">Broadcast</div>
       <div class="row" style="gap:16px;margin-bottom:10px">
         <div class="row" style="gap:10px">
-          <div class="switch" id="ed-online" onclick="toggleOnline()"></div>
+          <div class="switch" id="ed-online" data-act="toggle-live"></div>
           <b style="font-size:.88rem">Channel is live</b>
         </div>
       </div>
@@ -100,14 +101,14 @@
       <div id="ed-breaks"></div>
       <div class="row" style="margin-bottom:6px">
         <input id="ed-newbreak" placeholder="https://… video url (youtube, mp4)">
-        <button class="btn btn-ghost btn-sm" onclick="addBreak()">Add</button>
+        <button class="btn btn-ghost btn-sm" data-act="addbreak">Add</button>
       </div>
 
       <div class="row" style="margin-top:18px;gap:10px">
-        <button class="btn btn-brand" onclick="saveBasics()">Save channel</button>
-        <button class="btn btn-ghost" onclick="goWatch()">▶ Preview</button>
+        <button class="btn btn-brand" data-act="save">Save channel</button>
+        <button class="btn btn-ghost" data-act="watch">▶ Preview</button>
         <span class="spacer" style="flex:1"></span>
-        <button class="btn btn-danger" id="ed-del" onclick="deleteChannel()">Delete channel</button>
+        <button class="btn btn-danger" id="ed-del" data-act="delete">Delete channel</button>
       </div>
     </div>
 
@@ -117,11 +118,11 @@
           <b style="font-size:1.05rem">Show schedule</b>
           <p class="mut" style="font-size:.8rem">What plays and when. Gaps between shows = break time.</p>
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="addShowRow()">+ Add show</button>
+        <button class="btn btn-ghost btn-sm" data-act="addshow">+ Add show</button>
       </div>
       <div id="ed-sched"></div>
       <div class="row" style="margin-top:10px">
-        <button class="btn btn-brand" onclick="saveSchedule()">Save schedule</button>
+        <button class="btn btn-brand" data-act="savesched">Save schedule</button>
       </div>
     </div>
   </div>

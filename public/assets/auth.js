@@ -22,6 +22,12 @@ function pickRole(r) {
 function showErr(m) { $('err').textContent = m; $('err').classList.add('show'); }
 function hideErr() { $('err').classList.remove('show'); }
 
+// after login, go back where the user came from (?next=/watch/xyz)
+function safeNext() {
+  const n = new URLSearchParams(location.search).get('next');
+  return n && n.startsWith('/') && !n.startsWith('//') ? n : null;
+}
+
 async function doLogin() {
   hideErr();
   const btn = $('in-btn');
@@ -31,7 +37,7 @@ async function doLogin() {
       method: 'POST',
       body: { username: $('l-user').value.trim(), password: $('l-pass').value },
     });
-    location.href = meRoute(d.user.role);
+    location.href = safeNext() || meRoute(d.user.role);
   } catch (e) {
     showErr(e.message);
     btn.disabled = false; btn.textContent = 'Sign in';
@@ -47,14 +53,16 @@ async function doSignup() {
       method: 'POST',
       body: { username: $('u-user').value.trim(), password: $('u-pass').value, role },
     });
-    location.href = meRoute(d.user.role);
+    location.href = safeNext() || meRoute(d.user.role);
   } catch (e) {
     showErr(e.message);
     btn.disabled = false; btn.textContent = 'Create account';
   }
 }
 
-document.addEventListener('keydown', e => {
-  if (e.key !== 'Enter') return;
-  if ($('panel-in').style.display === 'none') doSignup(); else doLogin();
+bindActions({
+  tab: (ds) => switchTab(ds.tab),
+  pickrole: (ds) => pickRole(ds.role),
+  login: doLogin,
+  signup: doSignup,
 });

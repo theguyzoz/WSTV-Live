@@ -1,10 +1,12 @@
 // broadcaster studio: create channels, go live, schedule shows, break videos
+// all buttons go through data-act (csp blocks inline handlers)
 'use strict';
 
 let me = null;
 let channels = [];       // channels i can edit
-let editing = null;      // channel object being edited
+let editing = null;      // channel id being edited
 let schedDraft = [];     // working copy of the schedule rows
+let breaksDraft = [];
 const $ = (id) => document.getElementById(id);
 
 function showErr(m) { $('err').textContent = m; $('err').classList.add('show'); setTimeout(() => $('err').classList.remove('show'), 6000); }
@@ -20,7 +22,7 @@ async function init() {
   if (me.role === 'viewer') {
     $('mych-head').textContent = 'Channels';
     showErr('Your account is a Viewer. An admin can switch you to Broadcaster from the admin panel.');
-    document.querySelector('button.btn-pink').disabled = true;
+    $('btn-create').disabled = true;
   }
   if (me.role !== 'admin') {
     $('acct').style.display = 'none';
@@ -46,10 +48,10 @@ function renderList() {
     return;
   }
   box.innerHTML = channels.map(c => (
-    '<div class="c' + (editing === c.id ? ' active' : '') + '" onclick="openEditor(\'' + esc(c.id) + '\')">'
+    '<div class="c' + (editing === c.id ? ' active' : '') + '" data-act="edit" data-ch="' + esc(c.id) + '">'
     + chTile(c, 40)
     + '<div style="flex:1;min-width:0"><b style="font-size:.9rem">' + c.number + ' · ' + esc(c.name) + '</b>'
-    + '<div class="mut" style="font-size:.72rem">' + (c.online ? '🔴 live' : 'offline') + ' · ' + (c.viewers || 0) + ' watching</div></div>'
+    + '<div class="mut" style="font-size:.72rem">' + (c.online ? 'live' : 'offline') + ' · ' + EYE + ' ' + (c.viewers || 0) + '</div></div>'
     + (c.kind === 'system' ? '<span class="badge badge-sys">sys</span>' : '')
     + '</div>'
   )).join('');
@@ -74,7 +76,8 @@ async function openEditor(id) {
   $('ed-online').classList.toggle('on', !!c.online);
   $('ed-del').style.display = c.kind === 'system' ? 'none' : '';
   renderImg(c.image);
-  renderBreaks(c.breakVideos || []);
+  breaksDraft = [...(c.breakVideos || [])];
+  drawBreaks();
   schedDraft = (c.schedule || []).map(it => ({ ...it }));
   renderSched();
   $('editor').scrollIntoView({ behavior: 'smooth' });
@@ -100,12 +103,6 @@ async function uploadImage(file) {
     renderImg(d.image);
     showOk('Image updated');
   } catch (e) { showErr(e.message); }
-}
-
-function toggleOnline() {
-  const el = $('ed-online');
-  el.classList.toggle('on');
-  saveBasics(true);
 }
 
 async function saveBasics(silent) {
@@ -135,18 +132,16 @@ async function deleteChannel() {
   } catch (e) { showErr(e.message); }
 }
 
-function goWatch() { location.href = '/watch/' + encodeURIComponent(editing); }
-
 // ── schedule editor ───────────────────────────────────────
 
 function renderSched() {
   $('ed-sched').innerHTML = schedDraft.map((it, i) => (
     '<div class="sched-row">'
-    + '<input value="' + esc(it.title) + '" maxlength="60" placeholder="Show title" oninput="schedDraft[' + i + '].title=this.value">'
-    + '<input type="datetime-local" value="' + esc(toLocalInput(it.start)) + '" oninput="schedDraft[' + i + '].start=this.value">'
-    + '<input type="number" min="1" max="1440" value="' + (it.durationMin || 30) + '" title="minutes" oninput="schedDraft[' + i + '].durationMin=parseInt(this.value)||30">'
-    + '<input value="' + esc(it.videoUrl || '') + '" placeholder="Video url (youtube, mp4)" oninput="schedDraft[' + i + '].videoUrl=this.value">'
-    + '<button class="btn btn-danger btn-sm" onclick="schedDraft.splice(' + i + ',1);renderSched()">✕</button>'
+    + '<input value="' + esc(it.title) + '" maxlength="60" placeholder="Show title" data-oninput="sched" data-idx="' + i + '" data-field="title">'
+    + '<input type="datetime-local" value="' + esc(toLocalInput(it.start)) + '" data-oninput="sched" data-idx="' + i + '" data-field="start">'
+    + '<input type="number" min="1" max="1440" value="' + (it.durationMin || 30) + '" title="minutes" data-oninput="sched" data-idx="' + i + '" data-field="durationMin">'
+    + '<input value="' + esc(it.videoUrl || '') + '" placeholder="Video url (youtube, mp4)" data-oninput="sched" data-idx="' + i + '" data-field="videoUrl">'
+    + '<button class="btn btn-danger btn-sm" data-act="sched-del" data-idx="' + i + '">✕</button>'
     + '</div>'
   )).join('') || '<div class="mut" style="font-size:.84rem;padding:6px 0">Nothing scheduled yet.</div>';
 }
@@ -157,11 +152,6 @@ function toLocalInput(iso) {
   if (isNaN(d.getTime())) return '';
   const p = n => ('0' + n).slice(-2);
   return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes());
-}
-
-function addShowRow() {
-  schedDraft.push({ title: '', start: '', durationMin: 30, videoUrl: '' });
-  renderSched();
 }
 
 async function saveSchedule() {
@@ -175,27 +165,14 @@ async function saveSchedule() {
 
 // ── break videos ──────────────────────────────────────────
 
-let breaksDraft = [];
-
-function renderBreaks(list) {
-  breaksDraft = [...list];
-  drawBreaks();
-}
 function drawBreaks() {
   $('ed-breaks').innerHTML = breaksDraft.map((u, i) => (
     '<div class="bv-row"><span class="mut2" style="font-size:.7rem;width:16px">' + (i + 1) + '</span>'
     + '<input value="' + esc(u) + '" readonly style="flex:1">'
-    + '<button class="btn btn-danger btn-sm" onclick="breaksDraft.splice(' + i + ',1);drawBreaks();saveBreaks()">✕</button></div>'
+    + '<button class="btn btn-danger btn-sm" data-act="break-del" data-idx="' + i + '">✕</button></div>'
   )).join('') || '<div class="mut" style="font-size:.8rem;margin-bottom:8px">No break videos — viewers see a “on break” card between shows.</div>';
 }
-function addBreak() {
-  const u = $('ed-newbreak').value.trim();
-  if (!u) return;
-  breaksDraft.push(u);
-  $('ed-newbreak').value = '';
-  drawBreaks();
-  saveBreaks();
-}
+
 async function saveBreaks() {
   try {
     await api('/api/channels/' + encodeURIComponent(editing), { method: 'PATCH', body: { breakVideos: breaksDraft } });
@@ -216,5 +193,38 @@ async function openCreate() {
   } catch (e) { showErr(e.message); }
 }
 
-document.getElementById('ed-imgfile').addEventListener('change', e => uploadImage(e.target.files[0]));
+// ── actions (wired via data-act) ──────────────────────────
+
+bindActions({
+  create: openCreate,
+  edit: (ds) => openEditor(ds.ch),
+  'toggle-live': () => {
+    const el = $('ed-online');
+    el.classList.toggle('on');
+    saveBasics(true);
+  },
+  save: () => saveBasics(false),
+  watch: () => { location.href = '/watch/' + encodeURIComponent(editing); },
+  delete: deleteChannel,
+  addshow: () => { schedDraft.push({ title: '', start: '', durationMin: 30, videoUrl: '' }); renderSched(); },
+  savesched: saveSchedule,
+  'sched-del': (ds) => { schedDraft.splice(+ds.idx, 1); renderSched(); },
+  sched: (ds, el) => {
+    const row = schedDraft[+ds.idx];
+    if (!row) return;
+    if (ds.field === 'durationMin') row.durationMin = parseInt(el.value, 10) || 30;
+    else row[ds.field] = el.value;
+  },
+  addbreak: () => {
+    const u = $('ed-newbreak').value.trim();
+    if (!u) return;
+    breaksDraft.push(u);
+    $('ed-newbreak').value = '';
+    drawBreaks();
+    saveBreaks();
+  },
+  'break-del': (ds) => { breaksDraft.splice(+ds.idx, 1); drawBreaks(); saveBreaks(); },
+});
+
+$('ed-imgfile').addEventListener('change', e => uploadImage(e.target.files[0]));
 init();

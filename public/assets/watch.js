@@ -10,6 +10,8 @@ let currentState = '';
 let currentSrc = '';
 const $ = (id) => document.getElementById(id);
 
+if (!chId) location.href = '/';
+
 // hand-drawn stroke icons for the on-screen states
 const ICONS = {
   offline: '<svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v9"/><path d="M6.2 6.6a8 8 0 1 0 11.6 0"/></svg>',
@@ -17,9 +19,6 @@ const ICONS = {
   clock: '<svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>',
   notfound: '<svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M16.5 16.5L21 21"/><path d="M8.7 8.7l4.6 4.6M13.3 8.7l-4.6 4.6"/></svg>',
 };
-
-
-if (!chId) location.href = '/';
 
 async function init() {
   try { me = (await api('/api/auth/me')).user; } catch { me = null; }
@@ -47,7 +46,11 @@ async function init() {
   window._socket = socket;
   socket.on('connect', () => socket.emit('tune', chId));
   socket.on('viewers', d => {
-    if (d.channelId === chId) $('chatvw').textContent = d.count + ' watching';
+    if (d.channelId === chId) {
+      $('chatvw').textContent = d.count + ' watching';
+      const vn = $('vwnum');
+      if (vn) vn.textContent = d.count;
+    }
   });
   socket.on('chat:history', renderChat);
   socket.on('chat:new', m => appendChat(m));
@@ -56,10 +59,7 @@ async function init() {
   socket.on('channel:schedule', s => { CH.schedule = s; tick(true); });
   window.addEventListener('beforeunload', () => socket.emit('untune'));
 
-  setInterval(() => {
-    // countdown labels in the next bar
-    renderNextbar();
-  }, 1000);
+  setInterval(renderNextbar, 1000);
 }
 
 // work out what should be on screen right now
@@ -83,11 +83,8 @@ function computeState() {
 function tick(force) {
   if (!CH) return;
   const st = computeState();
-  if (!force && st.state === currentState) { renderNextbar(); return; }
-
-  // same state + same video? leave the player alone
   const src = videoSrcFor(st);
-  if (!force && st.state === currentState && src === currentSrc) return;
+  if (!force && st.state === currentState && src === currentSrc) { renderNextbar(); return; }
   currentState = st.state;
   currentSrc = src;
 
@@ -155,12 +152,12 @@ function renderInfo() {
     + '<div style="flex:1;min-width:140px"><div class="nm">' + CH.number + ' · ' + esc(CH.name) + '</div>'
     + '<div class="mut" style="font-size:.76rem">' + esc(CH.tagline || '') + '</div></div>'
     + badge
-    + '<span class="vwcount" id="chatvw2">👁 <span id="vwnum">0</span></span>';
+    + '<span class="vwcount">' + EYE + ' <span id="vwnum">' + (CH.viewers || 0) + '</span></span>';
 }
 
 function renderNextbar() {
   const el = $('nextbar');
-  if (!CH) return;
+  if (!CH || !el) return;
   const st = computeState();
   if (st.state === 'show' && st.current) {
     const end = new Date(st.current.start).getTime() + st.current.durationMin * 60_000;
@@ -168,11 +165,11 @@ function renderNextbar() {
     el.innerHTML = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--live);margin-right:5px"></span>Now: <b>' + esc(st.current.title) + '</b> · ends in ' + mmss(left) + (st.next ? ' · up next: ' + esc(st.next.title) : '');
   } else if (st.state === 'break' && st.next) {
     const left = Math.max(0, new Date(st.next.start).getTime() - Date.now());
-    el.innerHTML = '⏸ On break · <b>' + esc(st.next.title) + '</b> starts in ' + mmss(left);
+    el.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style="vertical-align:-1px;margin-right:4px"><rect x="6" y="4" width="4" height="16" rx="1.5"/><rect x="14" y="4" width="4" height="16" rx="1.5"/></svg>On break · <b>' + esc(st.next.title) + '</b> starts in ' + mmss(left);
   } else if (st.state === 'offline') {
     el.innerHTML = 'Channel offline · next: ' + esc(nextShowText());
   } else {
-    el.innerHTML = CH.online ? '🔴 Live stream' : '';
+    el.innerHTML = CH.online ? 'Live stream' : '';
   }
   renderUpnext();
 }
@@ -196,11 +193,13 @@ function renderUpnext() {
 function renderChatForm() {
   if (me) {
     $('chatform').innerHTML =
-      '<input id="chat-in" maxlength="240" placeholder="Say something…" onkeydown="if(event.key===\'Enter\'){sendChat()}">'
-      + '<button class="btn btn-brand btn-sm" onclick="sendChat()">Send</button>';
+      '<input id="chat-in" maxlength="240" placeholder="Say something…" data-enter="sendchat">'
+      + '<button class="btn btn-brand btn-sm" data-act="sendchat">Send</button>';
   } else {
+    // bounce back here after signing in
+    const next = encodeURIComponent('/watch/' + chId);
     $('chatform').innerHTML =
-      '<div class="mut" style="display:flex;gap:10px;align-items:center;width:100%"><span style="flex:1;font-size:.8rem">Sign in to join the chat</span><a class="btn btn-brand btn-sm" href="/login">Sign in</a></div>';
+      '<div class="mut" style="display:flex;gap:10px;align-items:center;width:100%"><span style="flex:1;font-size:.8rem">Sign in to join the chat</span><a class="btn btn-brand btn-sm" href="/login?next=' + next + '">Sign in</a></div>';
   }
 }
 
@@ -231,10 +230,39 @@ function flashChatError(msg) {
 
 function sendChat() {
   const inp = $('chat-in');
+  if (!inp) return;
   const text = inp.value.trim();
   if (!text || !window._socket) return;
   window._socket.emit('chat:send', { text });
   inp.value = '';
 }
+
+function toast(msg) {
+  let t = $('wstv-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'wstv-toast';
+    t.style.cssText = 'position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);border-radius:99px;padding:8px 18px;font-size:.82rem;font-weight:700;z-index:120;transition:opacity .3s;pointer-events:none';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  setTimeout(() => { t.style.opacity = '0'; }, 1600);
+}
+
+async function shareChannel() {
+  const url = location.href;
+  try {
+    await navigator.clipboard.writeText(url);
+    toast('Link copied to clipboard');
+  } catch {
+    prompt('Copy this channel link:', url);
+  }
+}
+
+bindActions({
+  sendchat: sendChat,
+  share: shareChannel,
+});
 
 init();
