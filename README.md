@@ -61,6 +61,21 @@ live over websockets without a refresh.
 
 Plus a live chat (signed-in users only) and live viewer counts.
 
+Videos play through `/api/media` — a strict allow-listed proxy that fetches
+the source file and streams it to every viewer (full Range/seek support,
+source URL hidden, nothing written to disk). YouTube links stay embeds, and
+the player falls back to the direct URL if the proxy can't reach a source.
+Only URLs saved in some channel's schedule / breaks / live url can ever be
+fetched through it — it is never an open proxy.
+
+When saving a schedule / break videos / live url, the server health-checks
+each link (HEAD, content-type sniff) and returns warnings for dead or
+non-video links — the studio shows them without blocking the save.
+
+**Times**: the studio converts your local times to UTC before sending and
+the server treats timezone-less times as UTC, so schedules never shift by
+your timezone offset anymore.
+
 ## Security
 
 - scrypt-hashed passwords, httpOnly session cookies (7-day sliding)

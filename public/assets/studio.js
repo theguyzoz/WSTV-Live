@@ -10,6 +10,8 @@ let breaksDraft = [];
 const $ = (id) => document.getElementById(id);
 
 function showErr(m) { $('err').textContent = m; $('err').classList.add('show'); setTimeout(() => $('err').classList.remove('show'), 6000); }
+function showWarn(m) { const w = $('warn'); if (!w) return showErr(m); w.textContent = m; w.classList.add('show'); setTimeout(() => w.classList.remove('show'), 9000); }
+function handleWarnings(d) { if (d && Array.isArray(d.warnings) && d.warnings.length) showWarn('Saved, but check these links: ' + d.warnings.join(' · ')); }
 function showOk(m) { $('ok').textContent = m; $('ok').classList.add('show'); setTimeout(() => $('ok').classList.remove('show'), 4000); }
 
 async function init() {
@@ -106,6 +108,9 @@ async function uploadImage(file) {
 }
 
 async function saveBasics(silent) {
+  const liveUrl = $('ed-liveurl').value.trim();
+  // quick sanity warn before the round trip
+  if (liveUrl && !/^https?:\/\//i.test(liveUrl)) return showErr('Live URL must start with http:// or https://');
   const body = {
     name: $('ed-name').value.trim(),
     tagline: $('ed-tagline').value.trim(),
@@ -115,8 +120,9 @@ async function saveBasics(silent) {
   };
   if (me.role === 'admin') body.number = parseInt($('ed-number').value, 10) || undefined;
   try {
-    await api('/api/channels/' + encodeURIComponent(editing), { method: 'PATCH', body });
+    const d = await api('/api/channels/' + encodeURIComponent(editing), { method: 'PATCH', body });
     if (!silent) showOk('Channel saved');
+    handleWarnings(d);
     refresh();
   } catch (e) { showErr(e.message); }
 }
@@ -156,10 +162,21 @@ function toLocalInput(iso) {
 
 async function saveSchedule() {
   try {
-    const d = await api('/api/channels/' + encodeURIComponent(editing) + '/schedule', { method: 'PUT', body: { schedule: schedDraft } });
+    // datetime-local strings are browser-local - convert to real UTC before
+    // sending, otherwise the server guesses a timezone and times shift
+    const payload = schedDraft.map(it => {
+      let start = it.start;
+      if (start) {
+        const d = new Date(start);
+        if (!isNaN(d.getTime())) start = d.toISOString();
+      }
+      return { ...it, start };
+    });
+    const d = await api('/api/channels/' + encodeURIComponent(editing) + '/schedule', { method: 'PUT', body: { schedule: payload } });
     schedDraft = d.schedule.map(it => ({ ...it }));
     renderSched();
     showOk('Schedule saved (' + schedDraft.length + ' shows)');
+    handleWarnings(d);
   } catch (e) { showErr(e.message); }
 }
 
@@ -175,7 +192,8 @@ function drawBreaks() {
 
 async function saveBreaks() {
   try {
-    await api('/api/channels/' + encodeURIComponent(editing), { method: 'PATCH', body: { breakVideos: breaksDraft } });
+    const d = await api('/api/channels/' + encodeURIComponent(editing), { method: 'PATCH', body: { breakVideos: breaksDraft } });
+    handleWarnings(d);
   } catch (e) { showErr(e.message); }
 }
 

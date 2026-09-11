@@ -91,13 +91,15 @@ function tick(force) {
   const scr = $('screen');
   if (st.state === 'show') {
     scr.innerHTML = playerHtml(src) + '<div class="breakbar" style="background:linear-gradient(90deg,rgba(34,197,94,.92),rgba(34,197,94,.7));color:#03210f">● LIVE — ' + esc(st.current.title) + '</div>';
+    wireVideoFallback();
   } else if (st.state === 'break') {
     const bv = (CH.breakVideos || []);
     const v = bv.length ? playerHtml(bv[breakIdx % bv.length], true) : '';
     scr.innerHTML = v + stateCardHtml(ICONS.pause, 'On break', 'Up next: <b>' + esc(st.next.title) + '</b> at ' + fmtDayTime(st.next.start), !!bv.length, true);
-    if (bv.length) breakIdx++;
+    if (bv.length) { breakIdx++; wireVideoFallback(); }
   } else if (st.state === 'live') {
     scr.innerHTML = playerHtml(src) + '<div class="breakbar" style="background:linear-gradient(90deg,rgba(34,197,94,.92),rgba(34,197,94,.7));color:#032210">● LIVE</div>';
+    wireVideoFallback();
   } else if (st.state === 'offline') {
     // offline: the info card on top of the channel's uploaded image
     scr.innerHTML = stateCardHtml(ICONS.offline, 'Channel offline', 'This channel is off air right now.<br>Next up: ' + esc(nextShowText()), false);
@@ -126,7 +128,24 @@ function playerHtml(url, muted) {
   if (yt) {
     return '<iframe src="https://www.youtube.com/embed/' + yt + '?autoplay=1&rel=0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>';
   }
-  return '<video src="' + esc(url) + '" controls autoplay playsinline' + (muted ? ' muted' : '') + '></video>';
+  // direct files go through our server proxy: it fetches the mp4 and
+  // streams it to everyone (seek support, source hidden, steady headers)
+  const proxied = '/api/media?u=' + encodeURIComponent(url);
+  return '<video src="' + esc(proxied) + '" data-direct="' + esc(url) + '" controls autoplay playsinline' + (muted ? ' muted' : '') + '></video>';
+}
+
+// if the proxy chokes on a source, fall back to the direct url once
+function wireVideoFallback() {
+  const v = document.querySelector('#screen video');
+  if (!v) return;
+  let fellBack = false;
+  v.addEventListener('error', () => {
+    if (fellBack || !v.dataset.direct) return;
+    fellBack = true;
+    v.src = v.dataset.direct;
+    v.load();
+    v.play().catch(() => {});
+  });
 }
 
 function stateCardHtml(icon, big, subHtml, behindVideo, isBreak) {

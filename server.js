@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { Server } from 'socket.io';
+import { Readable } from 'node:stream';
 
 import {
   db, findUserByName, findUserById,
@@ -244,7 +245,7 @@ app.post('/api/channels', requireRole('broadcaster', 'admin'), (req, res) => {
   res.json({ ok: true, channel: channelSummary(ch) });
 });
 
-app.patch('/api/channels/:id', requireAuth, (req, res) => {
+app.patch('/api/channels/:id', requireAuth, async (req, res) => {
   const ch = db.channels.find(c => c.id === req.params.id);
   if (!ch) return res.status(404).json({ error: 'Channel not found' });
   if (!canEditChannel(req.user, ch)) return res.status(403).json({ error: 'You cannot edit this channel' });
@@ -283,10 +284,19 @@ app.patch('/api/channels/:id', requireAuth, (req, res) => {
       return res.status(400).json({ error: 'That channel number is taken' });
     ch.number = n;
   }
+
+  // link health checks -> warnings (don't block the save)
+  const warnings = [];
+  const toCheck = [];
+  if (ch.liveUrl) toCheck.push(['live url', ch.liveUrl]);
+  for (const u of (ch.breakVideos || [])) toCheck.push(['break video', u]);
+  const results = await Promise.all(toCheck.map(([label, u]) => checkVideoUrl(u).then(w => w ? `${label}: ${w}` : null)));
+  warnings.push(...results.filter(Boolean));
+
   saveChannels();
   broadcastGuide();
   io.to(`ch:${ch.id}`).emit('channel:meta', channelSummary(ch));
-  res.json({ ok: true, channel: channelSummary(ch) });
+  res.json({ ok: true, channel: channelSummary(ch), warnings });
 });
 
 app.delete('/api/channels/:id', requireAuth, (req, res) => {
@@ -306,7 +316,42 @@ app.delete('/api/channels/:id', requireAuth, (req, res) => {
 });
 
 // full schedule replace. each item: title, start (iso), durationMin, videoUrl
-app.put('/api/channels/:id/schedule', requireAuth, (req, res) => {
+// parse a start time. if it has no timezone info we read it as UTC so the
+// result never depends on the server's own timezone (the studio app always
+// sends full ISO strings with Z - this is just a safety net for api calls)
+function parseStart(v) {
+  if (typeof v !== 'string' || !v.trim()) return null;
+  const s = /[zZ]$|[+\-]\d{2}:?\d{2}$/.test(v.trim()) ? v.trim() : v.trim() + 'Z';
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+// check a video url is reachable and actually looks like a video.
+// embed platforms can't be head-checked, so they pass without a look.
+const EMBED_HOSTS = /(?:^|\.)(youtube\.com|youtu\.be|youtube-nocookie\.com|vimeo\.com|dailymotion\.com|twitch\.tv)$/i;
+const _verified = new Map(); // url -> true (skip repeat checks within a run)
+async function checkVideoUrl(u) {
+  if (!validUrl(u)) return 'Not a valid http(s) link';
+  if (EMBED_HOSTS.test(new URL(u).hostname) || _verified.has(u)) return null;
+  try {
+    let r = await fetch(u, { method: 'HEAD', redirect: 'follow', signal: AbortSignal.timeout(8000) });
+    if (r.status === 405 || r.status === 501) {
+      // some servers refuse HEAD - try a 1kb range read instead
+      r = await fetch(u, { headers: { range: 'bytes=0-1023' }, redirect: 'follow', signal: AbortSignal.timeout(8000) });
+    }
+    if (!r.ok && r.status !== 206) return `Server answered ${r.status}`;
+    const ct = (r.headers.get('content-type') || '').toLowerCase();
+    if (ct && !ct.startsWith('video/') && !ct.startsWith('audio/') && ct !== 'application/octet-stream' && !ct.includes('mpegurl') && !ct.includes('quicktime')) {
+      return `That link is "${ct}", not a video file`;
+    }
+    _verified.set(u, true);
+    return null;
+  } catch (e) {
+    return `Could not reach that video url (${e.message})`;
+  }
+}
+
+app.put('/api/channels/:id/schedule', requireAuth, async (req, res) => {
   const ch = db.channels.find(c => c.id === req.params.id);
   if (!ch) return res.status(404).json({ error: 'Channel not found' });
   if (!canEditChannel(req.user, ch)) return res.status(403).json({ error: 'You cannot edit this channel' });
@@ -318,10 +363,10 @@ app.put('/api/channels/:id/schedule', requireAuth, (req, res) => {
   const clean = [];
   for (const it of list) {
     const title = cleanStr(it?.title, 60);
-    const start = new Date(it?.start);
+    const start = parseStart(it?.start);
     const dur = parseInt(it?.durationMin, 10);
     if (!title) return res.status(400).json({ error: 'Every show needs a title' });
-    if (isNaN(start.getTime())) return res.status(400).json({ error: `Bad start time for "${title}"` });
+    if (!start) return res.status(400).json({ error: `Bad start time for "${title}"` });
     if (!dur || dur < 1 || dur > 24 * 60) return res.status(400).json({ error: `Bad duration for "${title}" (1-1440 min)` });
     if (it?.videoUrl && !validUrl(it.videoUrl)) return res.status(400).json({ error: `Bad video url for "${title}"` });
     clean.push({
@@ -333,11 +378,18 @@ app.put('/api/channels/:id/schedule', requireAuth, (req, res) => {
     });
   }
   clean.sort((a, b) => new Date(a.start) - new Date(b.start));
+
+  // check the links are alive before they go on air. problems come back as
+  // warnings, not errors - a temporarily down cdn shouldn't block saving
+  const warnings = [];
+  const checks = await Promise.all(clean.filter(it => it.videoUrl).map(it => checkVideoUrl(it.videoUrl).then(w => w ? `"${it.title}": ${w}` : null)));
+  warnings.push(...checks.filter(Boolean));
+
   ch.schedule = clean;
   saveChannels();
   broadcastGuide();
   io.to(`ch:${ch.id}`).emit('channel:schedule', clean);
-  res.json({ ok: true, schedule: clean });
+  res.json({ ok: true, schedule: clean, warnings });
 });
 
 // channel image upload. accepts a data uri, sniffs the real type, saves the file
@@ -367,6 +419,60 @@ app.post('/api/channels/:id/image', requireAuth, (req, res) => {
   saveChannels();
   broadcastGuide();
   res.json({ ok: true, image: ch.image });
+});
+
+
+// ── media proxy ───────────────────────────────────────────
+// the server fetches a saved video url and streams it to the viewers
+// (with seek/range support). only urls that exist in some channel's
+// schedule / breaks / live url are allowed - never an open proxy,
+// nothing is written to disk.
+
+function mediaAllowList() {
+  const set = new Set();
+  for (const ch of db.channels) {
+    if (ch.liveUrl) set.add(ch.liveUrl);
+    for (const v of (ch.breakVideos || [])) set.add(v);
+    for (const it of (ch.schedule || [])) if (it.videoUrl) set.add(it.videoUrl);
+  }
+  return set;
+}
+
+app.get('/api/media', async (req, res) => {
+  const u = String(req.query.u || '');
+  if (!validUrl(u) || !mediaAllowList().has(u)) {
+    return res.status(403).json({ error: 'Not allowed' });
+  }
+  const hit = rateLimit(`media:${clientIp(req)}`, 60, 60_000);
+  if (!hit.ok) return res.status(429).json({ error: 'Too many requests' });
+
+  try {
+    const headers = {};
+    if (req.headers.range) headers.range = req.headers.range;
+    const up = await fetch(u, {
+      headers,
+      redirect: 'follow',
+      signal: AbortSignal.timeout(20_000),
+    });
+    if (!up.ok && up.status !== 206) {
+      return res.status(502).json({ error: 'Video source unavailable' });
+    }
+    res.status(up.status);
+    const ct = up.headers.get('content-type');
+    if (ct) res.setHeader('Content-Type', ct);
+    const cl = up.headers.get('content-length');
+    if (cl) res.setHeader('Content-Length', cl);
+    const cr = up.headers.get('content-range');
+    if (cr) res.setHeader('Content-Range', cr);
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    const stream = Readable.fromWeb(up.body);
+    stream.pipe(res);
+    req.on('close', () => stream.destroy());
+  } catch (e) {
+    if (!res.headersSent) res.status(502).json({ error: 'Video source unavailable' });
+    else res.end();
+  }
 });
 
 // ── admin api ─────────────────────────────────────────────
