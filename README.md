@@ -87,6 +87,14 @@ your timezone offset anymore.
 - chat and all rendered text escaped; nothing user-written ever hits innerHTML unescaped
 - unknown pages → real 404 test-card page; unknown API paths → JSON 404
 
+## Station bumper
+
+`tools/make-bumper.py` generates the frames for a 10s WSTV station bumper
+(test card bars -> logo sting -> "you're watching" bug). Render the frames,
+encode with ffmpeg (command in the script header) and upload the mp4 to any
+free direct-link host (catbox.moe, uguu.se, …). Use it as a break-time video
+or a between-shows station ident.
+
 ## Run it
 
 ```bash
